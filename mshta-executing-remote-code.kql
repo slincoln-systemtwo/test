@@ -1,0 +1,30 @@
+// Name: Mshta Executing Remote Code
+// Author: detections.ai
+// Date: 2025-07-23
+// Description: Detects the execution of mshta.exe with command line arguments indicating it is fetching and executing remote code from a URL. This technique is frequently used by malware like Lumma Stealer for initial code execution, often as part of a "ClickFix" social engineering scheme.
+// Tactic: Execution
+// Technique: T1218.005 - System Binary Proxy Execution: Mshta
+// False Positive Sensitivity: Medium
+// References: https://www.microsoft.com/en-us/security/blog/2025/05/21/lumma-stealer-breaking-down-the-delivery-techniques-and-capabilities-of-a-prolific-infostealer/
+
+DeviceProcessEvents
+// Filter for mshta.exe process creation events. Using both fields helps catch renamed binaries.
+| where FileName =~ "mshta.exe" or ProcessVersionInfoInternalFileName =~ "mshta.exe"
+// Look for command line arguments that indicate remote code execution via HTTP/S or script protocols.
+| where ProcessCommandLine has_any ("http://", "https://", "javascript:", "vbscript:")
+// FP Tuning: Legitimate applications might use mshta to render HTML content from a remote source.
+// To reduce false positives, consider excluding known parent processes or command lines associated with legitimate software.
+// For example, add a line like: `| where InitiatingProcessFileName !in~ ("legit_app1.exe", "legit_app2.exe")`
+// The ClickFix technique described in the reference often has explorer.exe as the parent process.
+| project
+    Timestamp,
+    DeviceName,
+    AccountName,
+    InitiatingProcessFileName,
+    InitiatingProcessCommandLine,
+    FileName,
+    ProcessCommandLine,
+    MD5,
+    SHA256,
+    ProcessId,
+    InitiatingProcessId
