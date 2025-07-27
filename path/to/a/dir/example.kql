@@ -1,0 +1,1 @@
+DeviceProcessEvents | where InitiatingProcessName ~= "test.exe"
